@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+data/discovery_cohort/exchanges.csv
+data/test_cohort/test_16s/res_grow_g/exchanges.csv
