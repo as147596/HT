@@ -296,7 +296,6 @@ list<-sort(table(flux$taxon),decreasing = T)
 #list<-list[-which(names(list)=="medium")]
 
 
-
 cluster<-cluster_walktrap(dif_graph)  # 
 #cluster<-cluster_leading_eigen(dif_graph)
 table(cluster$membership)
@@ -315,93 +314,10 @@ esplot<-plotEnrichment(species_cluster[[3]],list) +
 
 myRankedlist<-as.numeric(list)
 names(myRankedlist)<-names(list)
+cluster<-membership(cluster)
+cluster_3nodes<-intersect(names(cluster)[cluster==3],)
+#write.csv(cluster_3nodes,"output/cluster_3.csv")
 
-cluster_3nodes<-names(cluster)[cluster==3]
-write.csv(cluster_3nodes,"output/cluster_3.csv")
-
-known<-read.csv("data/known.csv")
-known<-unique(gsub(" .*","",known$Gut.Microbiota..ID.))
-subg_node<-names(membership(cluster))[membership(cluster)==3]
-dif_subgraph<-difnetwork[difnetwork$Var1%in%subg_node&difnetwork$Var2%in%subg_node,]
-subg_nodeattr<-nodeatr[nodeatr$nodes%in%subg_node,]
-subg_nodeattr$Nsample<-myRankedlist[match(subg_nodeattr$nodes,names(myRankedlist))]
-subg_nodeattr$nodetype<-ifelse(subg_nodeattr$nodes%in%known,"Documented","Not Documented")
-TCG<-read.csv("data/TCG.csv")
-TCG$TCG<-rep(c("C1B","C1A"),c(91,50))
-TCG<-TCG[TCG$Genus!="",]
-TCG<-TCG[!duplicated(TCG$Genus),]
-TCG_A<-TCG[TCG$TCG=="C1A",]
-TCG_B<-TCG[TCG$TCG=="C1B",]
-subg_nodeattr$TCG<-ifelse(subg_nodeattr$nodes%in%TCG$Genus,ifelse(subg_nodeattr$nodes%in%TCG_A$Genus,"C1A","C1B"),"Other")
-subg_nodeattr<-subg_nodeattr[order(subg_nodeattr$TCG),]
-subgraph<-graph_from_data_frame(d=dif_subgraph,vertices = subg_nodeattr)
-V(subgraph)$nodes<-subg_nodeattr$nodes
-subgraph_plot<-ggraph(subgraph, layout = "linear",circular = TRUE) +
-  geom_edge_link(aes(colour = cor,
-                     # width=difcor
-  ),
-  #  linetype = type), 
-  alpha = 1) +
-  
-  scale_edge_colour_gradientn(name = "cor",
-                              colors = c("#66C2A5", "#ABDDA4", "#E6F598", "#FEE08B", "#FDAE61", "#F46D43"),
-                              #limits = c(0, max(E(graph)$cor)),
-                              space = "Lab",
-                              na.value = "grey50", 
-                              guide = "edge_colourbar") +
-  
-  geom_node_point(aes(size = degree,
-                      #size =  30,
-                      #shape = nodetype,
-                      colour = Between,
-                      #fill = difclose,
-                      stroke = 1.15)) +
-  
-  
-  scale_colour_gradientn(name = "Betweenness",
-                         colours = c("skyblue1","slateblue","red"),
-                         # limits = c(min(V(tp_graph)$logpval), max(V(tp_graph)$logpval)),
-                         #limits = c(min(V(graph)$Between), max(V(graph)$Between))
-                         # oob = squish
-  ) + coord_fixed() +
-  #facet_nodes(~nodetype,nrow = 1)+
-  geom_node_text(aes(filter = nodes%in%subg_node,
-                     label = paste(nodes, sep = '')), 
-                 colour="firebrick4", repel = T) +
-  
-  theme_void() +
-  theme(plot.title = element_text(size = 5, face = "bold"))+
-  theme(panel.spacing = unit(1,"lines"),
-        #legend.position = 'bottom',
-        legend.spacing.x = unit(2,'cm'),
-        legend.key.size = unit(0.5,'cm'))
-
-
-subgraph_p<-ggraph(subgraph, layout='linear', circular = TRUE) +
-  geom_node_text(aes(x = 1.1 * x,
-                     y = 1.1 * y,
-                     label = nodes,
-                     angle = -((-node_angle(x, y) + 90) %% 180) + 90),
-                 hjust = "outward") +
-  geom_node_point(size=3,alpha=1,aes(color=nodetype,shape=TCG))+
-  geom_edge_arc(aes(colour = cor), width=0.1,
-                alpha = 1.5) +
-  scale_color_manual(name="node type",values=c("Documented"="red","Not Documented"="palegreen4"))+
-  scale_edge_width_continuous(range = c(0,0.2)) +theme_void()+
-  #theme_graph()+
-  scale_edge_colour_gradientn(name = "Differential \ncorrelation",
-                              colors = c("aquamarine3","grey90","mediumpurple"),
-                              #limits = c(0, max(E(graph)$cor)),
-                              space = "Lab",
-                              na.value = "grey50", 
-                              guide = "edge_colourbar")+
-  expand_limits(x = c(-3.5, 2.5), y = c(-3, 3))+theme(plot.margin = ggplot2::margin(r=50))+
-  ggtitle("C.")+labs(subtitle = "KEPR")+
-  theme(plot.title = element_text(hjust = 0.07,vjust = -6),
-        plot.subtitle = element_text(hjust = 0.5),
-        title = element_text(size = 16,face="bold"))
-
-spe_net_plot<-gridExtra::grid.arrange(difgraph,subgraph_p,ncol=1,heights=c(0.4,0.5))
 
 flux<-read.csv("data/discovery_cohort/exchanges.csv",header = T)
 flux$metabolite<-gsub("\\[e\\]","_e",flux$metabolite)
@@ -509,9 +425,9 @@ clus3no<-spedif_nodes[spedif_nodes$nodes%in%cluster3nodes$x,]
 c3_graph<-graph_from_data_frame(d=clu3net,vertices = clus3no)
 V(c3_graph)$cluster<-factor(V(c3_graph)$cluster)
 c3graph<-ggraph(c3_graph,
-                 layout = "manual",
-                 x = pos[spedif_nodes$nodes%in%cluster3nodes$x, 1],
-                 y = pos[spedif_nodes$nodes%in%cluster3nodes$x, 2]) +
+                layout = "manual",
+                x = pos[spedif_nodes$nodes%in%cluster3nodes$x, 1],
+                y = pos[spedif_nodes$nodes%in%cluster3nodes$x, 2]) +
   geom_edge_link0(aes(col = cor), width = 0.2) +
   geom_node_point(aes(fill = cluster), shape = 21, size = 3) +
   geom_mark_hull( # 注意这里哈
@@ -551,6 +467,94 @@ gsea<-ggdraw(gsea) +ggtitle("B.")+
         plot.margin = ggplot2::margin(t=15),
         title = element_text(size = 18,face="bold"))+
   draw_plot(c3graph,x = 0.35,y=0.85,width = 0.14,height = 0.11)
+
+
+
+known<-read.csv("data/known.csv")
+known<-unique(gsub(" .*","",known$Gut.Microbiota..ID.))
+cluster<-cluster_walktrap(dif_graph)
+subg_node<-names(membership(cluster))[membership(cluster)==3]
+subg_node<-intersect(subg_node,colnames(agg_mat))
+dif_subgraph<-difnetwork[difnetwork$Var1%in%subg_node&difnetwork$Var2%in%subg_node,]
+subg_nodeattr<-nodeatr[nodeatr$nodes%in%subg_node,]
+subg_nodeattr$Nsample<-myRankedlist[match(subg_nodeattr$nodes,names(myRankedlist))]
+subg_nodeattr$nodetype<-ifelse(subg_nodeattr$nodes%in%known,"Documented","Not Documented")
+TCG<-read.csv("data/TCG.csv")
+TCG$TCG<-rep(c("C1B","C1A"),c(91,50))
+TCG<-TCG[TCG$Genus!="",]
+TCG<-TCG[!duplicated(TCG$Genus),]
+TCG_A<-TCG[TCG$TCG=="C1A",]
+TCG_B<-TCG[TCG$TCG=="C1B",]
+
+genus_dif<-read.csv("output/genus_dif.csv",row.names = 1)
+genus_dif<-genus_dif[!is.na(genus_dif$LDAupper),]
+genus_h<-genus_dif[genus_dif$Sign_disease=="healthy",]
+genus_d<-genus_dif[genus_dif$Sign_disease=="hypertension",]
+rownames(genus_h)<-gsub("g__","",rownames(genus_h))
+genus_h$sign[genus_h$fdr<0.001]<-"***"
+genus_h$sign[genus_h$fdr<0.01&genus_h$fdr>=0.001]<-"**"
+genus_h$sign[genus_h$fdr<0.05&genus_h$fdr>=0.01]<-"*"
+genus_h$sign[genus_h$fdr>=0.05]<-""
+rownames(genus_d)<-gsub("g__","",rownames(genus_d))
+genus_d$sign[genus_d$fdr<0.001]<-"***"
+genus_d$sign[genus_d$fdr<0.01&genus_d$fdr>=0.001]<-"**"
+genus_d$sign[genus_d$fdr<0.05&genus_d$fdr>=0.01]<-"*"
+genus_d$sign[genus_d$fdr>=0.05]<-""
+sign_all<-rbind(genus_d,genus_h)
+sign_all$nodes<-paste0(rownames(sign_all),sign_all$sign)
+index<-which(subg_nodeattr$nodes%in%rownames(sign_all))
+subg_nodeattr$nodes<-as.character(subg_nodeattr$nodes)
+subg_nodeattr$nodes[index]<-sign_all$nodes[match(subg_nodeattr$nodes[index],rownames(sign_all))]
+subg_nodeattr$change<-ifelse(subg_nodeattr$nodes%in%paste0(rownames(genus_h),genus_h$sign),"Down",ifelse(subg_nodeattr$nodes%in%paste0(rownames(genus_d),genus_d$sign),"UP","Not"))
+subg_nodeattr<-subg_nodeattr[order(subg_nodeattr$change),]
+subg_nodeattr$change<-factor(subg_nodeattr$change,levels = c("Down","Up","Not"))
+
+dif_subgraph$Var1<-as.character(dif_subgraph$Var1)
+dif_subgraph$Var2<-as.character(dif_subgraph$Var2)
+index<-which(dif_subgraph$Var1%in%rownames(sign_all))
+dif_subgraph$Var1[index]<-sign_all$nodes[match(dif_subgraph$Var1[index],rownames(sign_all))]
+index<-which(dif_subgraph$Var2%in%rownames(sign_all))
+dif_subgraph$Var2[index]<-sign_all$nodes[match(dif_subgraph$Var2[index],rownames(sign_all))]
+
+subgraph<-graph_from_data_frame(d=dif_subgraph,vertices = subg_nodeattr)
+V(subgraph)$nodes<-subg_nodeattr$nodes
+V(subgraph)$change<-factor(V(subgraph)$change,levels = c("Down","Up","Not"))
+
+legend_data <- data.frame(
+  change = c("Down", "Up"),
+  label = c("Down", "Up")
+)
+subgraph_p<-ggraph(subgraph, layout='linear', circular = TRUE) +
+  geom_node_text(aes(x = 1.1 * x,
+                     y = 1.1 * y,
+                     label = nodes,color=change,
+                     angle = -((-node_angle(x, y) + 90) %% 180) + 90),
+                 hjust = "outward") +
+  scale_color_manual(name="change",values=c("Up"="red","Down"="palegreen4","Not"="black"),
+                     breaks = c("Up","Down"),
+                     labels=c(expression(HT[Up]),expression(HT[Down])))+
+  ggnewscale::new_scale_color()+
+  geom_node_point(size=3,alpha=1,aes(color=nodetype))+
+  geom_edge_arc(aes(colour = cor), width=0.1,
+                alpha = 1.5) +
+  scale_color_manual(name="node type",values=c("Documented"="red","Not Documented"="darkcyan"))+
+  scale_edge_width_continuous(range = c(0,0.2)) +theme_void()+
+  #theme_graph()+
+  scale_edge_colour_gradientn(name = "Differential \ncorrelation",
+                              colors = c("aquamarine3","grey90","mediumpurple"),
+                              #limits = c(0, max(E(graph)$cor)),
+                              space = "Lab",
+                              na.value = "grey50", 
+                              guide = "edge_colourbar")+
+  expand_limits(x = c(-3.5, 2.5), y = c(-3, 3))+theme(plot.margin = ggplot2::margin(r=50))+
+  ggtitle("C.")+labs(subtitle = "KEPR")+
+  theme(plot.title = element_text(hjust = 0.07,vjust = -6),
+        plot.subtitle = element_text(hjust = 0.5),
+        title = element_text(size = 16,face="bold"))
+
+spe_net_plot<-gridExtra::grid.arrange(difgraph,subgraph_p,ncol=1,heights=c(0.4,0.5))
+
+
 pdf("output/Fig3.pdf",width = 14,height = 10)
 grid.arrange(spe_net_plot,gsea,ncol=2,widths=c(0.5,0.55))
 dev.off()

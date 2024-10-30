@@ -116,6 +116,29 @@ beta_p<-mpse %>%
         plot.margin = ggplot2::margin(r=40,l=30,t=10,b=25),
         title = element_text(size = 16,face="bold"))
 
+mpse %<>%
+  mp_diff_analysis(
+    .abundance = RelRareAbundanceBySample,
+    .group = disease,
+    first.test.alpha = 0.01
+  )
+
+mpse %>%
+  mp_plot_diff_boxplot(
+    .group = disease,
+  )
+
+tbl <- mpse %>% mp_extract_abundance(taxa.class = 'all')
+xx <- data %>% mp_extract_feature()
+xx %<>% dplyr::select(setdiff(colnames(xx), colnames(tbl)))
+tbl %<>% left_join(xx, by = c('label'='OTU'))
+tbl %<>% dplyr::filter(tbl$nodeClass %in% "Genus")
+tbl<-tbl[,-3]
+write.csv(tbl,"output/genus_dif.csv",row.names = F)
+
+
+
+
 
 ####test data
 otu<-read.table("data/test_cohort/test_16s/microbio_selected.otus",row.names = 1,header = T)
