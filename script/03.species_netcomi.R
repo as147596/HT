@@ -290,6 +290,8 @@ importance<-read.csv("data/xgb_rf_importance.csv")
 importance<-gsub("^m_","",importance$x)
 importance<-gsub("_m$","_e",importance)
 flux<-read.csv("data/discovery_cohort/exchanges.csv",header = T)
+meta<-read.csv("data/meta.csv",row.names = 1)
+flux<-flux[flux$sample_id%in%meta$sample_id,]
 flux$metabolite<-gsub("\\[e\\]","_e",flux$metabolite)
 flux<-flux[flux$metabolite%in%importance,c(1,2,7)]
 list<-sort(table(flux$taxon),decreasing = T)
@@ -315,14 +317,14 @@ esplot<-plotEnrichment(species_cluster[[3]],list) +
 myRankedlist<-as.numeric(list)
 names(myRankedlist)<-names(list)
 cluster<-membership(cluster)
-cluster_3nodes<-intersect(names(cluster)[cluster==3],)
-#write.csv(cluster_3nodes,"output/cluster_3.csv")
+cluster_3nodes<-intersect(names(cluster)[cluster==3],names(myRankedlist))
+write.csv(cluster_3nodes,"output/cluster_3.csv")
 
 
-flux<-read.csv("data/discovery_cohort/exchanges.csv",header = T)
-flux$metabolite<-gsub("\\[e\\]","_e",flux$metabolite)
-flux<-flux[flux$metabolite%in%importance,]
-flux<-flux[flux$taxon!="medium",c(1,2,7)]
+#flux<-read.csv("data/discovery_cohort/exchanges.csv",header = T)
+#flux$metabolite<-gsub("\\[e\\]","_e",flux$metabolite)
+#flux<-flux[flux$metabolite%in%importance,]
+#flux<-flux[flux$taxon!="medium",c(1,2,7)]
 meta<-read.csv("data/meta.csv",row.names = 1)
 flux_h<-flux[flux$sample_id%in%meta$sample_id[meta$disease=="healthy"],]
 flux_d<-flux[flux$sample_id%in%meta$sample_id[meta$disease=="hypertension"],]
@@ -341,6 +343,7 @@ agg_mat<-agg_mat[,-1]
 agg_mat<-agg_mat[,order(colSums(agg_mat),decreasing = T)]
 agg_mat<-agg_mat[order(rowSums(agg_mat)),]
 rownames(agg_mat)<-gsub("_e$","",rownames(agg_mat))
+
 
 agg_mat1 <- reshape2::melt(as.matrix(agg_mat)) 
 colnames(agg_mat1)[3]<-"Nsample"
@@ -466,7 +469,7 @@ gsea<-ggdraw(gsea) +ggtitle("B.")+
   theme(plot.title = element_text(hjust = 0.01,vjust = 0),
         plot.margin = ggplot2::margin(t=15),
         title = element_text(size = 18,face="bold"))+
-  draw_plot(c3graph,x = 0.35,y=0.85,width = 0.14,height = 0.11)
+  draw_plot(c3graph,x = 0.35,y=0.8,width = 0.10,height = 0.18)
 
 
 
