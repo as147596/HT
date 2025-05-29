@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+assoPerm.bmat
+countsPerm1.bmat
+countsPerm2.bmat
+countsPerm1.desc*
+exchanges.csv

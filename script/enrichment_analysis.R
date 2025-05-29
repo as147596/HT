@@ -9,6 +9,7 @@ enrichment_analysis<-function(list, background, pathway_data) {
     summarize(
       Pathway_Size = n(),
       Overlap_Size = sum(metabolite %in% list),
+      Overlap=paste(intersect(metabolite, list),collapse = ","),
       P_Value = phyper(
         q = sum(metabolite %in% list) - 1,
         m = length(metabolite),
