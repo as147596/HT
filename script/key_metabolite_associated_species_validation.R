@@ -81,7 +81,7 @@ sig<-sig[(sig$metabolite%in%imp_up&sig$ATE>0)|
 
 
 selected=read.csv("data/res_grow_wd_pFBA/selected_sample.csv")
-meta<-read.csv("data/test_cohort/test_16s/SraRunTable.csv",row.names = 1)
+meta<-read.csv("data/discovery_cohort/16s/SraRunTable.csv",row.names = 1)
 meta<-meta[meta$Sample.Name%in%selected$x,]
 meta$disease<-ifelse(meta$diastolic_bp>=90|meta$Systolic_BP>=140,"hypertension","healthy")
 dir<-read.csv("data/res_grow_wd_pFBA/exchanges.csv")
@@ -250,12 +250,12 @@ vol_prepare<-function(vol,key_genus){
                    ifelse(vol$pvalue<=0.05&key_genus_ind,"Imbalanced genus within\nthe FERM guild","Other imbalance"))
   vol
 }
-otu<-read.table("data/test_cohort/test_16s/microbio_selected.otus",row.names = 1,header = T)
-meta_test<-read.csv("data/test_cohort//test_16s/SraRunTable.csv",header = T)
+otu<-read.table("data/discovery_cohort/16s/microbio_selected.otus",row.names = 1,header = T)
+meta_test<-read.csv("data/discovery_cohort/16s/SraRunTable.csv",header = T)
 rownames(meta_test)<-meta_test$Sample.Name
 otu<-otu[rownames(meta_test),]
 meta_test$group<-ifelse(meta_test$diastolic_bp>=90|meta_test$Systolic_BP>=140,"hypertension","healthy")
-taxa<-read.table("data/test_cohort/test_16s/microbio_selected.taxonomy",row.names = 1,header = T)
+taxa<-read.table("data/discovery_cohort/16s/microbio_selected.taxonomy",row.names = 1,header = T)
 taxatmp<-strsplit(taxa$Taxonomy,";")
 taxatmp<-as.data.frame(taxatmp)
 taxa<-t(taxatmp)
@@ -273,8 +273,7 @@ genus<-prop.table(as.matrix(genus),2)|>as.data.frame()
 ## Discovery balance ----
 
 key_genus<-read.csv("output/cluster_3.csv")
-
-sbp <- sbp.fromADBA(t(genus), meta_test$group) # get discriminant balances
+sbp<-sbp.fromADBA(t(genus),meta_test$group)
 sbp<-sbp.subset(sbp)
 z<-balance.fromSBP(t(genus),sbp)
 pvalue<-c()
@@ -286,9 +285,15 @@ for(i in 1:ncol(z)){
     mean(z[meta_test$group!="hypertension",i])
   logfc<-c(logfc,logfci)
 }
+sum(pvalue<0.05,na.rm = T)
 vol<-data.frame(z=colnames(sbp),pvalue=pvalue,logfc=logfc)
 vol1<-vol_prepare(vol,key_genus = key_genus)
 sum(pvalue<0.05)
+z<-z[,pvalue<0.05]|>t()|>as.data.frame()
+colnames(z)<-meta_test$Sample.Name
+z$pvalue<-pvalue[pvalue<0.05]
+z$logfc<-logfc[pvalue<0.05]
+write.csv(z,"output/imbalance_dis.csv",quote = F)
 tmp<-colnames(sbp)[pvalue<0.05]
 tmp<-sapply(tmp,function(x){
   strsplit(x,"_and_")[[1]]
@@ -333,6 +338,7 @@ genus_df<-genus_df[,hypertension_meta$sample_id]
 sbp<-sbp.fromADBA(t(genus_df),hypertension_meta$disease)
 sbp<-sbp.subset(sbp)
 z1<-balance.fromSBP(t(genus_df),sbp)
+rownames(z1)<-hypertension_meta$sample_id
 pvalue<-c()
 logfc<-c()
 for(i in 1:ncol(z1)){
@@ -345,6 +351,10 @@ for(i in 1:ncol(z1)){
 vol<-data.frame(z=colnames(sbp),pvalue=pvalue,logfc=logfc)
 vol2<-vol_prepare(vol,key_genus = key_genus)
 sum(pvalue<0.05)
+z1<-t(z1[,pvalue<0.05])|>as.data.frame()
+z1$pvalue<-pvalue[pvalue<0.05]
+z1$logfc<-logfc[pvalue<0.05]
+write.csv(z1,"output/imbalance_val.csv",quote = F)
 tmp<-colnames(sbp)[pvalue<0.05]
 tmp<-sapply(tmp,function(x){
   strsplit(x,"_and_")[[1]]
