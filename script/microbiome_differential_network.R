@@ -26,7 +26,7 @@ library(cowplot)
 library(curatedMetagenomicData)
 library(ggpubr)
 #showtext_auto()
-ab<-read.csv("data/test_cohort/test_16s/genus_16s.csv",row.names = 1,header = T)
+ab<-read.csv("data/discovery_cohort/16s/genus_16s.csv",row.names = 1,header = T)
 #samplename<-as.character(read.csv("data/abundance.csv",row.names = 1,header = F)[1,])
 #colnames(ab)<-samplename
 ##taxa<-strsplit(rownames(ab),"\\|")
@@ -36,7 +36,7 @@ ab<-read.csv("data/test_cohort/test_16s/genus_16s.csv",row.names = 1,header = T)
 #ab_genus<-aggregate(.~genus,data=ab,sum)
 #rownames(ab_genus)<-ab_genus$genus
 #ab_genus<-ab_genus[,-1]
-meta<-read.csv("data/test_cohort/test_16s/SraRunTable.csv")
+meta<-read.csv("data/discovery_cohort/16s/SraRunTable.csv")
 selected<-read.csv("data/res_grow_wd_pFBA/selected_sample.csv")
 meta<-meta[meta$Sample.Name%in%selected$x,]
 meta$sample_id<-gsub("-","\\.",meta$Sample.Name)
@@ -115,13 +115,7 @@ diff <- diffnet(net,discordThresh=0.8,alpha = 0.05,lfdrThresh = 0.2,
                 adjust = "none",seed = 123)
 saveRDS(diff,"data/specie_network_res1.rds")
 diff<-readRDS("data/specie_network_res1.rds")
-plot(diff,
-     cexNodes = 1, 
-     cexLegend = 0.6,
-     cexTitle = 2,
-     mar = c(10,10,10,20),layout=NULL,
-     legendGroupnames = c("hypertension", "healthy"),
-     legendPos = c(1.1,0.8))
+
 props_pears <- netAnalyze(net, 
                           clustMethod = "cluster_fast_greedy",
                           weightDeg = TRUE,
@@ -131,24 +125,7 @@ props_pears <- netAnalyze(net,
 
 diffmat_sums <- rowSums(diff$diffAdjustMat)
 diff_asso_names <- names(diffmat_sums[diffmat_sums > 0])
-pdf("output/comp_network.pdf",width = 12,height = 6)
-plot(props_pears, 
-     nodeFilter = "names",
-     nodeFilterPar = diff_asso_names,
-     nodeColor = "gray",
-     highlightHubs = FALSE,
-     sameLayout = TRUE, 
-     layoutGroup = "union",
-     rmSingles = FALSE, 
-     nodeSize = "clr",
-     edgeTranspHigh = 20,
-     labelScale = FALSE,
-     cexNodes = 1, 
-     cexLabels = 0.8,
-     cexTitle = 0.8,
-     groupNames = c("hypertension", "healthy"),
-     hubBorderCol  = "gray40")
-dev.off()
+
 
 diffedge<-diff$assoMat1-diff$assoMat2
 diffpadj<-diff[["pAdjustMat"]]
@@ -243,7 +220,7 @@ importance<-read.csv("output/doubleml_res.csv")
 importance<-gsub("^m_","",unique(importance$X))
 importance<-gsub("_m$","_e",importance)
 flux<-read.csv("data/res_grow_wd_pFBA/exchanges.csv",header = T)
-meta<-read.csv("data/test_cohort/test_16s/SraRunTable.csv",row.names = 1)
+meta<-read.csv("data/discovery_cohort/16s/SraRunTable.csv",row.names = 1)
 selected<-read.csv("data/res_grow_wd_pFBA/selected_sample.csv")
 meta<-meta[meta$Sample.Name%in%selected$x,]
 flux<-flux[flux$sample_id%in%meta$Sample.Name,]
@@ -268,7 +245,7 @@ cluster_3nodes<-intersect(names(cluster)[cluster==which.min(es$pval)],names(myRa
 write.csv(cluster_3nodes,"output/cluster_3.csv",row.names = F)
 
 
-meta<-read.table("data/test_cohort/test_16s/sampleda.txt",row.names = 1)
+meta<-read.table("data/discovery_cohort/16s/sampleda.txt",row.names = 1)
 meta<-meta[meta$sample%in%selected$x,]
 flux_h<-flux[flux$sample_id%in%meta$sample[meta$group=="healthy"],]
 flux_d<-flux[flux$sample_id%in%meta$sample[meta$group=="hypertension"],]
@@ -540,7 +517,7 @@ spe_net_plot<-gridExtra::grid.arrange(difgraph,subgraph_p,ncol=1,heights=c(0.4,0
 
 
 ab_c3<-ab_genus
-meta<-read.csv("data/test_cohort/test_16s/SraRunTable.csv")
+meta<-read.csv("data/discovery_cohort/16s/SraRunTable.csv")
 selected<-read.csv("data/res_grow_wd_pFBA/selected_sample.csv")
 meta<-meta[meta$Sample.Name%in%selected$x,]
 meta$sample_id<-gsub("-","\\.",meta$Sample.Name)
@@ -585,7 +562,7 @@ p_heat<-ggplot(stat_all,aes(guild,group))+
             hjust=0.5,vjust=0.7)+
   scale_fill_gradient2(name="coefficient",low = "blue4",mid = "white",high = "red4")+
   scale_size_continuous(range = c(3,8))+
-  ggtitle("D.")+
+  ggtitle("A.")+
   theme(
         text = element_text(size = 16),axis.title.x = element_text(size = 14,face = "bold"),
         axis.ticks.y = element_blank(),
@@ -618,7 +595,7 @@ p_line<-ggplot(lin_data,aes(x = c3,y=value))+
   scale_color_manual(name="",values = c("#acd372","#fbb05b"))+
   theme_classic()+
   labs(x="FERM(eigenvector)",y="BP")+
-  ggtitle("E.")+
+  ggtitle("B.")+
   theme(
     axis.text = element_text(color = "black",size = 12),
     axis.title = element_text(size = 14,face = "bold"),
@@ -667,7 +644,7 @@ p_validation<-ggplot(pc,aes(group,MEFERM,fill = group))+
   coord_cartesian(ylim = c(min(pc$MEFERM),0.1))+
   stat_compare_means(comparisons = list(c("hypertension","healthy")),
                      label.y = 0.0,tip.length = 0)+
-  theme_classic()+labs(x="",y="FERM(eigenvector)")+ggtitle("F.")+
+  theme_classic()+labs(x="",y="FERM(eigenvector)")+ggtitle("C.")+
   theme(
     text = element_text(size = 16),axis.title.x = element_blank(),
     axis.ticks.y = element_blank(),plot.margin = margin(b=30,t=10,r=10,l=5),
